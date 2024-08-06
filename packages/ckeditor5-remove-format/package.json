@@ -16,6 +16,7 @@
     "@ckeditor/ckeditor5-core": "42.0.2",
     "@ckeditor/ckeditor5-ui": "42.0.2",
     "@ckeditor/ckeditor5-utils": "42.0.2",
+    "@ckeditor/ckeditor5-html-support": "42.0.2",
     "ckeditor5": "42.0.2"
   },
   "devDependencies": {
