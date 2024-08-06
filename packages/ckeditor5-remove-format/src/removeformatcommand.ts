@@ -8,6 +8,8 @@
  */
 
 import type { DocumentSelection, Item, Schema } from 'ckeditor5/src/engine.js';
+import { isGHSAttributeName, type GHSViewAttributes } from '@ckeditor/ckeditor5-html-support';
+
 import { Command } from 'ckeditor5/src/core.js';
 import { first } from 'ckeditor5/src/utils.js';
 
@@ -52,7 +54,18 @@ export default class RemoveFormatCommand extends Command {
 					const itemRange = writer.createRangeOn( item );
 
 					for ( const attributeName of this._getFormattingAttributes( item, schema ) ) {
-						writer.removeAttribute( attributeName, itemRange );
+						if ( isGHSAttributeName( attributeName ) ) {
+							const oldAttribute = item.getAttribute( attributeName ) as GHSViewAttributes;
+							const newAttribute: GHSViewAttributes = {
+								...oldAttribute,
+								classes: [],
+								styles: {}
+							};
+
+							writer.setAttribute( attributeName, newAttribute, itemRange );
+						} else {
+							writer.removeAttribute( attributeName, itemRange );
+						}
 					}
 				}
 			}
@@ -101,10 +114,22 @@ export default class RemoveFormatCommand extends Command {
 	 * @returns The names of formatting attributes found in a given item.
 	 */
 	private* _getFormattingAttributes( item: Item | DocumentSelection, schema: Schema ) {
-		for ( const [ attributeName ] of item.getAttributes() ) {
+		for ( const [ attributeName, attributeValue ] of item.getAttributes() ) {
 			const attributeProperties = schema.getAttributeProperties( attributeName );
+			const isFormatting = attributeProperties && attributeProperties.isFormatting;
 
-			if ( attributeProperties && attributeProperties.isFormatting ) {
+			if ( isGHSAttributeName( attributeName ) ) {
+				const {
+					styles = {},
+					classes = []
+				} = attributeValue as GHSViewAttributes;
+
+				if ( Object.keys( styles ).length || classes.length ) {
+					yield attributeName;
+				}
+			}
+
+			if ( isFormatting ) {
 				yield attributeName;
 			}
 		}
