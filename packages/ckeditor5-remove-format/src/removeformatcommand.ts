@@ -116,7 +116,6 @@ export default class RemoveFormatCommand extends Command {
 	private* _getFormattingAttributes( item: Item | DocumentSelection, schema: Schema ) {
 		for ( const [ attributeName, attributeValue ] of item.getAttributes() ) {
 			const attributeProperties = schema.getAttributeProperties( attributeName );
-			const isFormatting = attributeProperties && attributeProperties.isFormatting;
 
 			if ( item.is( 'element' ) && schema.isBlock( item ) && isGHSAttributeName( attributeName ) ) {
 				const {
@@ -129,7 +128,7 @@ export default class RemoveFormatCommand extends Command {
 				}
 			}
 
-			if ( isFormatting ) {
+			if ( attributeProperties && attributeProperties.isFormatting ) {
 				yield attributeName;
 			}
 		}
