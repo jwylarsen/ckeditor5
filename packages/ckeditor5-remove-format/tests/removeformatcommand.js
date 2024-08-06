@@ -199,9 +199,11 @@ describe( 'RemoveFormatCommand', () => {
 			editor.commands.add( 'removeFormat', command );
 			dataFilter = editor.plugins.get( 'DataFilter' );
 
-			dataFilter.allowElement( 'p' );
-			dataFilter.allowAttributes( { name: 'p', styles: true } );
-			dataFilter.allowAttributes( { name: 'p', classes: true } );
+			for ( const name of [ 'p', 'a' ] ) {
+				dataFilter.allowElement( name );
+				dataFilter.allowAttributes( { name, styles: true } );
+				dataFilter.allowAttributes( { name, classes: true } );
+			}
 		} );
 
 		it( 'should remove formatting with selected paragraph containing custom styles', () => {
@@ -222,6 +224,18 @@ describe( 'RemoveFormatCommand', () => {
 			editor.execute( 'removeFormat' );
 
 			expect( editor.getData() ).to.equal( '<p>foo bar</p>' );
+		} );
+
+		it( 'should remove formatting from styled anchors', () => {
+			editor.setData( '<a href="https://example.com" style="color: red">foo</a>' );
+			expect( editor.getData() ).to.equal(
+				'<p><a style="color:red;" href="https://example.com">foo</a></p>'
+			);
+
+			editor.execute( 'selectAll' );
+			editor.execute( 'removeFormat' );
+
+			expect( editor.getData() ).to.equal( '<p><a href="https://example.com">foo</a></p>' );
 		} );
 
 		afterEach( async () => {
