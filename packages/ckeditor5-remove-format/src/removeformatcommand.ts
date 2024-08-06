@@ -118,7 +118,7 @@ export default class RemoveFormatCommand extends Command {
 			const attributeProperties = schema.getAttributeProperties( attributeName );
 			const isFormatting = attributeProperties && attributeProperties.isFormatting;
 
-			if ( isGHSAttributeName( attributeName ) ) {
+			if ( item.is( 'element' ) && schema.isBlock( item ) && isGHSAttributeName( attributeName ) ) {
 				const {
 					styles = {},
 					classes = []
