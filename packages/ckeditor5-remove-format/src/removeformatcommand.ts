@@ -7,8 +7,10 @@
  * @module remove-format/removeformatcommand
  */
 
+import { omit } from 'lodash-es';
+
 import type { DocumentSelection, Item, Schema } from 'ckeditor5/src/engine.js';
-import { isGHSAttributeName, type GHSViewAttributes } from '@ckeditor/ckeditor5-html-support';
+import type { GHSViewAttributes } from '@ckeditor/ckeditor5-html-support';
 
 import { Command } from 'ckeditor5/src/core.js';
 import { first } from 'ckeditor5/src/utils.js';
@@ -48,25 +50,29 @@ export default class RemoveFormatCommand extends Command {
 					for ( const attributeName of this._getFormattingAttributes( item, schema ) ) {
 						writer.removeSelectionAttribute( attributeName );
 					}
-				} else {
-					// Workaround for items with multiple removable attributes. See
-					// https://github.com/ckeditor/ckeditor5-remove-format/pull/1#pullrequestreview-220515609
-					const itemRange = writer.createRangeOn( item );
 
-					for ( const attributeName of this._getFormattingAttributes( item, schema ) ) {
-						if ( isGHSAttributeName( attributeName ) ) {
-							const oldAttribute = item.getAttribute( attributeName ) as GHSViewAttributes;
-							const newAttribute: GHSViewAttributes = {
-								...oldAttribute,
-								classes: [],
-								styles: {}
-							};
+					continue;
+				}
 
-							writer.setAttribute( attributeName, newAttribute, itemRange );
-						} else {
-							writer.removeAttribute( attributeName, itemRange );
-						}
-					}
+				// Workaround for items with multiple removable attributes. See
+				// https://github.com/ckeditor/ckeditor5-remove-format/pull/1#pullrequestreview-220515609
+				const itemRange = writer.createRangeOn( item );
+
+				// Remove GHS formatting attributes.
+				const ghsFormattingAttributes = this._getGHSFormattingAttributes( item, schema );
+
+				for ( const [ name, attributeValue ] of ghsFormattingAttributes ) {
+					const filteredAttributeValue = omit(
+						attributeValue,
+						[ 'classes', 'styles' ] satisfies Array<keyof GHSViewAttributes>
+					);
+
+					writer.setAttribute( name, filteredAttributeValue, itemRange );
+				}
+
+				// Remove formatting attributes.
+				for ( const attributeName of this._getFormattingAttributes( item, schema ) ) {
+					writer.removeAttribute( attributeName, itemRange );
 				}
 			}
 		} );
@@ -80,6 +86,10 @@ export default class RemoveFormatCommand extends Command {
 	 */
 	private* _getFormattingItems( selection: DocumentSelection, schema: Schema ) {
 		const itemHasRemovableFormatting = ( item: Item | DocumentSelection ) => {
+			if ( this._getGHSFormattingAttributes( item, schema ).size ) {
+				return true;
+			}
+
 			return !!first( this._getFormattingAttributes( item, schema ) );
 		};
 
@@ -114,23 +124,46 @@ export default class RemoveFormatCommand extends Command {
 	 * @returns The names of formatting attributes found in a given item.
 	 */
 	private* _getFormattingAttributes( item: Item | DocumentSelection, schema: Schema ) {
-		for ( const [ attributeName, attributeValue ] of item.getAttributes() ) {
+		for ( const [ attributeName ] of item.getAttributes() ) {
 			const attributeProperties = schema.getAttributeProperties( attributeName );
-
-			if ( item.is( 'element' ) && schema.isBlock( item ) && isGHSAttributeName( attributeName ) ) {
-				const {
-					styles = {},
-					classes = []
-				} = attributeValue as GHSViewAttributes;
-
-				if ( Object.keys( styles ).length || classes.length ) {
-					yield attributeName;
-				}
-			}
 
 			if ( attributeProperties && attributeProperties.isFormatting ) {
 				yield attributeName;
 			}
 		}
+	}
+
+	/**
+	 * Returns map of GHS formatting attributes of a given model item.
+	 *
+	 * @param schema The schema describing the item.
+	 * @returns The map of GHS formatting attributes found in a given item.
+	 */
+	private _getGHSFormattingAttributes( item: Item | DocumentSelection, schema: Schema ): Map<string, GHSViewAttributes> {
+		const { plugins } = this.editor;
+
+		// GHS formatting attributes should be used only with block elements
+		if ( !item.is( 'element' ) || !schema.isBlock( item ) ) {
+			return new Map();
+		}
+
+		// GHS attributes are supported only when the GeneralHtmlSupport plugin is enabled.
+		if ( !plugins.has( 'GeneralHtmlSupport' ) ) {
+			return new Map();
+		}
+
+		const htmlSupport = plugins.get( 'GeneralHtmlSupport' );
+		const ghsAttributes = htmlSupport.getGhsAttributesForElement( item );
+
+		for ( const [ name, attribute ] of ghsAttributes.entries() ) {
+			const hasNoStyles = !attribute.styles || !Object.keys( attribute.styles ).length;
+			const hasNoClasses = !attribute.classes || !attribute.classes.length;
+
+			if ( hasNoStyles && hasNoClasses ) {
+				ghsAttributes.delete( name );
+			}
+		}
+
+		return ghsAttributes;
 	}
 }

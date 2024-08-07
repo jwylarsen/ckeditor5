@@ -225,13 +225,13 @@ export function getHtmlAttributeName( viewElementName: string ): string {
 /**
  * Checks if the given attribute name is a GHS attribute name.
  *
- * @param name Attribute name to check.
- * @returns `true` if the attribute name is a GHS attribute name, `false` otherwise.
- * @example
- * ```js
+ * ```ts
  * isGHSAttributeName( 'htmlPAttributes' ); // true
  * isGHSAttributeName( 'span' ); // false
  * ```
+ *
+ * @param name Attribute name to check.
+ * @returns `true` if the attribute name is a GHS attribute name, `false` otherwise.
  */
 export function isGHSAttributeName<S extends string>( name: S ): boolean {
 	return name.startsWith( 'html' ) && name.endsWith( 'Attributes' );
