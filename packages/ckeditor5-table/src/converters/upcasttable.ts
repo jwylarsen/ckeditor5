@@ -103,7 +103,7 @@ export default function upcastTable() {
 			conversionApi.consumable.consume( viewTable, { name: true } );
 
 			if ( viewTable.hasClass( 'ck-table-resized' ) ) {
-				conversionApi.consumable.consume( data.viewItem, { classes: 'ck-table-resized' } );
+				conversionApi.consumable.consume( viewTable, { classes: 'ck-table-resized' } );
 			}
 
 			// Upcast table rows in proper order (heading rows first).
