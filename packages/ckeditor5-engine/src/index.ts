@@ -133,7 +133,7 @@ export type { SelectionChangeRangeEvent } from './model/selection.js';
 export { default as DataTransfer } from './view/datatransfer.js';
 export { default as DomConverter } from './view/domconverter.js';
 export { default as Renderer } from './view/renderer.js';
-export { default as EditingView } from './view/view.js';
+export { default as EditingView, getPointViewRange } from './view/view.js';
 export { default as ViewDocument } from './view/document.js';
 export { default as ViewText } from './view/text.js';
 export { default as ViewElement, type ElementAttributes as ViewElementAttributes } from './view/element.js';

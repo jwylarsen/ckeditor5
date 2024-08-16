@@ -12,6 +12,7 @@ import { Plugin } from '@ckeditor/ckeditor5-core';
 import {
 	MouseObserver,
 	TreeWalker,
+	getPointViewRange,
 	type DomEventData,
 	type DowncastSelectionEvent,
 	type DowncastWriter,
@@ -288,17 +289,39 @@ export default class Widget extends Plugin {
 			return;
 		}
 
-		// Do nothing for single or double click inside nested editable.
-		if ( isInsideNestedEditable( element ) ) {
-			return;
-		}
-
 		// If target is not a widget element - check if one of the ancestors is.
 		if ( !isWidget( element ) ) {
-			element = element.findAncestor( isWidget );
+			const widgetElement = element.findAncestor( isWidget );
 
-			if ( !element ) {
-				return;
+			if ( !widgetElement || isInsideNestedEditable( element ) ) {
+				const editableElement = findClosestEditableAncestor( element );
+
+				if ( !editableElement || !element.childCount ) {
+					return;
+				}
+
+				// Pick view range from the point where the mouse was clicked.
+				const clickTargetFromPoint = ( () => {
+					const range = getPointViewRange( view, domEventData!.domEvent );
+
+					return range && range.start.parent;
+				} )();
+
+				// If the click target is a text node, we need to get the parent element.
+				const clickElementFromPoint = clickTargetFromPoint && clickTargetFromPoint.is( '$text' ) ?
+					clickTargetFromPoint.parent : clickTargetFromPoint;
+
+				// If the element is a widget, we need to select the widget itself otherwise we need to select the first ancestor widget.
+				if ( clickElementFromPoint && clickElementFromPoint.is( 'element' ) ) {
+					element = isWidget( clickElementFromPoint ) ?
+						clickElementFromPoint : clickElementFromPoint.findAncestor( isWidget );
+				}
+
+				if ( !element ) {
+					return;
+				}
+			} else {
+				element = widgetElement;
 			}
 		}
 
@@ -631,6 +654,17 @@ function isInsideNestedEditable( element: ViewElement ) {
 	}
 
 	return false;
+}
+
+/**
+ * Returns the closest editable ancestor element, it includes the element itself.
+ */
+function findClosestEditableAncestor( element: ViewElement ) {
+	if ( element.is( 'editableElement' ) ) {
+		return element;
+	}
+
+	return element.findAncestor( element => element.is( 'editableElement' ) );
 }
 
 /**

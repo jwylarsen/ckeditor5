@@ -811,6 +811,44 @@ export default class View extends /* #__PURE__ */ ObservableMixin() {
 }
 
 /**
+ * Get the view range from the given DOM event.
+ *
+ * @param view The view instance.
+ * @param domEvent The DOM event.
+ * @returns The view range or `null` if the range cannot be created.
+ */
+export function getPointViewRange(
+	view: View,
+	domEvent: MouseEvent & {
+		rangeParent?: HTMLElement;
+		rangeOffset?: number;
+	}
+): Range | null {
+	const domDoc = ( domEvent.target as HTMLElement ).ownerDocument!;
+	const x = domEvent.clientX;
+	const y = domEvent.clientY;
+	let domRange;
+
+	// Webkit & Blink.
+	if ( domDoc.caretRangeFromPoint && domDoc.caretRangeFromPoint( x, y ) ) {
+		domRange = domDoc.caretRangeFromPoint( x, y );
+	}
+
+	// FF.
+	else if ( domEvent.rangeParent ) {
+		domRange = domDoc.createRange();
+		domRange.setStart( domEvent.rangeParent, domEvent.rangeOffset! );
+		domRange.collapse( true );
+	}
+
+	if ( domRange ) {
+		return view.domConverter.domRangeToView( domRange );
+	}
+
+	return null;
+}
+
+/**
  * Fired after a topmost {@link module:engine/view/view~View#change change block} and all
  * {@link module:engine/view/document~Document#registerPostFixer post-fixers} are executed.
  *

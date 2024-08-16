@@ -12,6 +12,7 @@ import { EventInfo } from '@ckeditor/ckeditor5-utils';
 import {
 	DataTransfer,
 	DomEventObserver,
+	getPointViewRange,
 	type DomEventData,
 	type EditingView,
 	type ViewDocumentFragment,
@@ -92,7 +93,7 @@ export default class ClipboardObserver extends DomEventObserver<
 		};
 
 		if ( domEvent.type == 'drop' || domEvent.type == 'dragover' ) {
-			evtData.dropRange = getDropViewRange( this.view, domEvent as DragEvent );
+			evtData.dropRange = getPointViewRange( this.view, domEvent as DragEvent );
 		}
 
 		this.fire( domEvent.type, domEvent, evtData );
@@ -113,30 +114,6 @@ export interface ClipboardEventData {
 	 * The position into which the content is dropped.
 	 */
 	dropRange?: ViewRange | null;
-}
-
-function getDropViewRange( view: EditingView, domEvent: DragEvent & { rangeParent?: Node; rangeOffset?: number } ) {
-	const domDoc = ( domEvent.target as Node ).ownerDocument!;
-	const x = domEvent.clientX;
-	const y = domEvent.clientY;
-	let domRange;
-
-	// Webkit & Blink.
-	if ( domDoc.caretRangeFromPoint && domDoc.caretRangeFromPoint( x, y ) ) {
-		domRange = domDoc.caretRangeFromPoint( x, y );
-	}
-	// FF.
-	else if ( domEvent.rangeParent ) {
-		domRange = domDoc.createRange();
-		domRange.setStart( domEvent.rangeParent, domEvent.rangeOffset! );
-		domRange.collapse( true );
-	}
-
-	if ( domRange ) {
-		return view.domConverter.domRangeToView( domRange );
-	}
-
-	return null;
 }
 
 /**
