@@ -824,7 +824,12 @@ export function getPointViewRange(
 		rangeOffset?: number;
 	}
 ): Range | null {
-	const domDoc = ( domEvent.target as HTMLElement ).ownerDocument!;
+	const domDoc = ( domEvent.target as HTMLElement ).ownerDocument;
+
+	if ( !domDoc ) {
+		return null;
+	}
+
 	const x = domEvent.clientX;
 	const y = domEvent.clientY;
 	let domRange;
