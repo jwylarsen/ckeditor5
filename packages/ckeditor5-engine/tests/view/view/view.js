@@ -5,7 +5,7 @@
 
 /* globals document, console, setTimeout, FocusEvent */
 
-import View from '../../../src/view/view.js';
+import View, { getPointViewRange } from '../../../src/view/view.js';
 import Observer from '../../../src/view/observer/observer.js';
 import KeyObserver from '../../../src/view/observer/keyobserver.js';
 import TabObserver from '../../../src/view/observer/tabobserver.js';
@@ -1398,5 +1398,91 @@ describe( 'view', () => {
 
 			sinon.assert.calledOnce( observerMock.destroy );
 		} );
+	} );
+} );
+
+describe( 'getPointViewRange()', () => {
+	let view;
+
+	beforeEach( () => {
+		view = new View( new StylesProcessor() );
+	} );
+
+	afterEach( () => {
+		view.destroy();
+	} );
+
+	it( 'should use Document#caretRangeFromPoint method to obtain range on Webkit & Blink', () => {
+		const fakeRange = {
+			startOffset: 0,
+			endOffset: 0
+		};
+
+		const domRangeToViewStub = sinon.stub( view.domConverter, 'domRangeToView' ).returns( fakeRange );
+		const caretRangeFromPointSpy = sinon.stub().returns( fakeRange );
+
+		const evt = {
+			clientX: 10,
+			clientY: 11,
+			target: {
+				ownerDocument: {
+					caretRangeFromPoint: caretRangeFromPointSpy
+				}
+			}
+		};
+
+		expect( getPointViewRange( view, evt ) ).to.be.equal( fakeRange );
+		expect( caretRangeFromPointSpy ).to.be.calledWith( 10, 11 );
+		expect( domRangeToViewStub ).to.be.calledWith( fakeRange );
+	} );
+
+	it( 'should use Document#createRange method to obtain range on Firefox', () => {
+		const fakeRange = {
+			startOffset: 0,
+			endOffset: 0,
+			setStart: sinon.stub(),
+			collapse: sinon.stub()
+		};
+
+		const evt = {
+			clientX: 10,
+			clientY: 11,
+			rangeOffset: 13,
+			rangeParent: { parent: true },
+			target: {
+				ownerDocument: {
+					createRange: sinon.stub().returns( fakeRange )
+				}
+			}
+		};
+
+		const domRangeToViewStub = sinon.stub( view.domConverter, 'domRangeToView' ).returns( fakeRange );
+
+		expect( getPointViewRange( view, evt ) ).to.be.equal( fakeRange );
+
+		expect( fakeRange.collapse ).to.be.calledWith( true );
+		expect( fakeRange.setStart ).to.be.calledWith( evt.rangeParent, evt.rangeOffset );
+		expect( domRangeToViewStub ).to.be.calledWith( fakeRange );
+	} );
+
+	it( 'should return null if event target is null', () => {
+		const evt = {
+			target: null
+		};
+
+		expect( getPointViewRange( view, evt ) ).to.be.null;
+	} );
+
+	it( 'should return null if event target is not null but it\'s not possible to create range on document', () => {
+		const evt = {
+			target: {
+				ownerDocument: {
+					createRange: null,
+					caretRangeFromPoint: null
+				}
+			}
+		};
+
+		expect( getPointViewRange( view, evt ) ).to.be.null;
 	} );
 } );
