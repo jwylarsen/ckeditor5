@@ -307,14 +307,16 @@ export default class Widget extends Plugin {
 					return range && range.start.parent;
 				} )();
 
-				// If the click target is a text node, we need to get the parent element.
-				const clickElementFromPoint = clickTargetFromPoint && clickTargetFromPoint.is( '$text' ) ?
-					clickTargetFromPoint.parent : clickTargetFromPoint;
+				// If the click target is a text node, we need to abort heuristics. This is because the text node
+				// can be draggable and focusing the parent node breaks the drag and drop.
+				if ( !clickTargetFromPoint || clickTargetFromPoint.is( '$text' ) ) {
+					return;
+				}
 
 				// If the element is a widget, we need to select the widget itself otherwise we need to select the first ancestor widget.
-				if ( clickElementFromPoint && clickElementFromPoint.is( 'element' ) ) {
-					element = isWidget( clickElementFromPoint ) ?
-						clickElementFromPoint : clickElementFromPoint.findAncestor( isWidget );
+				if ( clickTargetFromPoint && clickTargetFromPoint.is( 'element' ) ) {
+					element = isWidget( clickTargetFromPoint ) ?
+						clickTargetFromPoint : clickTargetFromPoint.findAncestor( isWidget );
 				}
 
 				if ( !element ) {
