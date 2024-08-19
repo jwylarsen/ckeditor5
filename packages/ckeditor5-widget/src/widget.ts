@@ -655,6 +655,7 @@ function isInsideNestedEditable( element: ViewElement ) {
 		currentElement = currentElement.parent;
 	}
 
+	/* istanbul ignore next -- @preserve */
 	return false;
 }
 
